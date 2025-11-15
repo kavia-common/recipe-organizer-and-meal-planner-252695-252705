@@ -2,22 +2,21 @@
 
 Environment configuration
 
-- Frontend (React) — Frontend-only Spoonacular integration:
-  - The React app now calls Spoonacular directly from the browser.
-  - Configure the following env vars in recipe_frontend/.env:
-    - REACT_APP_SPOONACULAR_API_KEY=<your key>
-    - REACT_APP_SPOONACULAR_BASE_URL=https://api.spoonacular.com (optional; defaults to this)
+- Frontend (React) — Frontend-only TheMealDB integration (no API key required):
+  - The React app calls TheMealDB directly from the browser.
+  - Optional env var in recipe_frontend/.env:
+    - REACT_APP_MEALDB_BASE_URL=https://www.themealdb.com/api/json/v1/1 (defaults to this)
   - Copy recipe_frontend/.env.example to recipe_frontend/.env and adjust as needed.
-  - Warning: Using a public API key in client-side code exposes it to end users. Apply domain restrictions and monitor usage.
 
 - Backend (FastAPI):
-  - Previously used as a proxy. The frontend no longer relies on it for search/details/nutrition/meal plan generation.
+  - Previously used as a proxy. The frontend does not rely on it for search/details/nutrition.
 
-Endpoints used by the frontend (Spoonacular):
-  GET  /recipes/complexSearch?query=...
-  GET  /recipes/{id}/information
-  GET  /recipes/{id}/nutritionWidget.json
-  GET  /mealplanner/generate?timeFrame=...
+Endpoints used by the frontend (TheMealDB):
+  GET  /search.php?s={query}
+  GET  /lookup.php?i={id}
+  GET  /filter.php?c={category}
+  GET  /filter.php?a={area}
+  GET  /random.php
 
 Error handling
-- The UI surfaces clear messages for rate-limit (429) and quota (402) responses from Spoonacular, as well as timeout errors.
+- The UI surfaces clear messages for timeouts and "no results" (TheMealDB returns {meals: null}).

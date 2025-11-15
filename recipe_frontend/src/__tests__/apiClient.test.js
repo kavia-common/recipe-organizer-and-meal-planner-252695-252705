@@ -1,12 +1,11 @@
 import { apiClient } from '../services/apiClient';
 
-// Ensure environment variable for test
 const ORIGINAL_ENV = process.env;
 
-describe('apiClient - auth append and errors', () => {
+describe('apiClient - TheMealDB basics', () => {
   beforeEach(() => {
     jest.resetModules();
-    process.env = { ...ORIGINAL_ENV, REACT_APP_SPOONACULAR_API_KEY: 'test-key', REACT_APP_SPOONACULAR_BASE_URL: 'https://api.spoonacular.com' };
+    process.env = { ...ORIGINAL_ENV, REACT_APP_MEALDB_BASE_URL: 'https://www.themealdb.com/api/json/v1/1' };
     global.fetch = jest.fn();
   });
 
@@ -15,38 +14,36 @@ describe('apiClient - auth append and errors', () => {
     jest.restoreAllMocks();
   });
 
-  it('appends apiKey query param to search requests', async () => {
-    // Arrange mock fetch to capture URL
+  it('calls search endpoint without apiKey and maps meals to results', async () => {
     global.fetch.mockImplementation(async (url) => {
       const u = new URL(url);
-      const key = u.searchParams.get('apiKey');
-      // Return minimal ok response
+      expect(u.pathname.endsWith('/search.php')).toBe(true);
+      expect(u.searchParams.get('s')).toBe('pasta');
+      expect(u.searchParams.get('apiKey')).toBeNull(); // no key
       return {
         ok: true,
         headers: { get: () => 'application/json' },
-        json: async () => ({ results: [], echoedKey: key })
+        json: async () => ({
+          meals: [
+            { idMeal: '101', strMeal: 'Pasta Primavera', strMealThumb: 'img' }
+          ]
+        })
       };
     });
 
-    // Act
     const result = await apiClient.searchRecipes('pasta');
-
-    // Assert
-    expect(result.echoedKey).toBe('test-key');
-    expect(global.fetch).toHaveBeenCalled();
-    const calledUrl = new URL(global.fetch.mock.calls[0][0]);
-    expect(calledUrl.searchParams.get('apiKey')).toBe('test-key');
+    expect(Array.isArray(result.results)).toBe(true);
+    expect(result.results[0].id).toBe('101');
+    expect(result.results[0].title).toBe('Pasta Primavera');
   });
 
-  it('provides friendly message for 401', async () => {
+  it('handles no results (meals: null) gracefully', async () => {
     global.fetch.mockResolvedValue({
-      ok: false,
-      status: 401,
-      statusText: 'Unauthorized',
+      ok: true,
       headers: { get: () => 'application/json' },
-      json: async () => ({ message: 'Unauthorized' })
+      json: async () => ({ meals: null })
     });
-
-    await expect(apiClient.searchRecipes('pasta')).rejects.toThrow(/not authorized/i);
+    const result = await apiClient.searchRecipes('xyz-not-found');
+    expect(result.results).toEqual([]);
   });
 });

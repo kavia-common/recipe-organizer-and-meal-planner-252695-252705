@@ -2,22 +2,21 @@
 
 This project provides a minimal React template with a clean, modern UI and minimal dependencies.
 
-## Spoonacular Frontend-only Integration
+## TheMealDB Frontend-only Integration (No API Key)
 
-This app calls the Spoonacular API directly from the browser.
+This app calls TheMealDB API directly from the browser.
 
-Required environment variables (create `recipe_frontend/.env` from `.env.example`):
-- REACT_APP_SPOONACULAR_API_KEY=<your key>
-- REACT_APP_SPOONACULAR_BASE_URL=https://api.spoonacular.com (optional)
+Optional environment variable (create `recipe_frontend/.env` from `.env.example`):
+- REACT_APP_MEALDB_BASE_URL=https://www.themealdb.com/api/json/v1/1
 
-Security note:
-- Client-side API keys are visible to users. Configure domain restrictions in your Spoonacular account, use rate limiting/monitoring, and consider a backend proxy for production environments handling sensitive logic.
-
-Primary endpoints used:
-- GET /recipes/complexSearch
-- GET /recipes/{id}/information
-- GET /recipes/{id}/nutritionWidget.json
-- GET /mealplanner/generate
+Notes:
+- No API key is required for TheMealDB.
+- Endpoints used:
+  - GET /search.php?s={query}
+  - GET /lookup.php?i={id}
+  - GET /filter.php?c={category}
+  - GET /filter.php?a={area}
+  - GET /random.php
 
 ## Getting Started
 
@@ -53,4 +52,4 @@ To adjust colors, see CSS variables in `src/App.css`.
 ## Learn More
 
 - React documentation: https://reactjs.org/
-- Spoonacular Food API: https://spoonacular.com/food-api
+- TheMealDB API: https://www.themealdb.com/api.php

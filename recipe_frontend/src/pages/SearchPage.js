@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiClient } from '../services/apiClient';
 import { Link } from 'react-router-dom';
 import { useApp } from '../state/AppContext';
@@ -66,11 +66,6 @@ export default function SearchPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const { addFavorite, removeFavorite, isFavorite } = useApp();
 
-  useEffect(() => {
-    // load default popular results if backend decides so (optional)
-    // No automatic call to prevent unnecessary 404s if endpoint isn't present yet.
-  }, []);
-
   const onSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -78,17 +73,11 @@ export default function SearchPage() {
     setErrorMsg('');
     try {
       const data = await apiClient.searchRecipes(query.trim());
-      // Expect either { results: [...] } or array
-      const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+      const list = Array.isArray(data?.results) ? data.results : [];
       setRecipes(list);
     } catch (err) {
       const msg = err?.message || 'Failed to search';
-      // If auth-related, add user guidance. We check keywords to avoid leaking details.
-      const lower = String(msg).toLowerCase();
-      const authHint = (lower.includes('not authorized') || lower.includes('unauthorized') || lower.includes('forbidden'))
-        ? ' Tip: Check your REACT_APP_SPOONACULAR_API_KEY or account usage/limits.'
-        : '';
-      setErrorMsg(`${msg}${authHint}`);
+      setErrorMsg(msg);
       setRecipes([]);
     } finally {
       setLoading(false);
@@ -134,10 +123,6 @@ export default function SearchPage() {
       {errorMsg && (
         <div role="alert" style={{ marginTop: 16, color: '#EF4444' }}>
           <p style={{ margin: 0 }}>{errorMsg}</p>
-          <p style={{ marginTop: 6 }}>
-            Learn more about Spoonacular authentication:&nbsp;
-            <a href="https://spoonacular.com/food-api/console#Authentication" target="_blank" rel="noreferrer">Auth docs</a>
-          </p>
         </div>
       )}
 

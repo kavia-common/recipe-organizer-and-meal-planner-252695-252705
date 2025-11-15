@@ -18,8 +18,8 @@ jest.mock('../services/apiClient', () => ({
       }
       return {
         results: [
-          { id: 101, title: 'Pasta Primavera', summary: '<p>Fresh veggies and pasta.</p>' },
-          { id: 202, title: 'Grilled Chicken', summary: '<p>Juicy grilled chicken.</p>' }
+          { id: '101', title: 'Pasta Primavera', summary: '<p>Fresh veggies and pasta.</p>' },
+          { id: '202', title: 'Grilled Chicken', summary: '<p>Juicy grilled chicken.</p>' }
         ]
       };
     }),
@@ -28,7 +28,7 @@ jest.mock('../services/apiClient', () => ({
         throw new Error('Recipe not found');
       }
       return {
-        id: Number(id),
+        id,
         title: id === '101' ? 'Pasta Primavera' : 'Mock Recipe',
         image: '',
         summary: '<p>Delicious.</p>',
@@ -39,13 +39,13 @@ jest.mock('../services/apiClient', () => ({
         ]
       };
     }),
-    getNutrition: jest.fn(async () => ({ calories: 300 })),
+    getNutrition: jest.fn(async () => ({ calories: null })),
     generateMealPlan: jest.fn(async () => ({
       items: [
-        { date: '2025-01-01', recipe: { id: 101, title: 'Pasta Primavera' } }
+        { date: '2025-01-01', recipe: { id: '101', title: 'Pasta Primavera' } }
       ]
     })),
-    getMealPlanNutrition: jest.fn(async () => ({ calories: 1200 })),
+    getMealPlanNutrition: jest.fn(async () => ({ calories: null })),
     getGroceryList: jest.fn(async () => ({ items: ['tomatoes', 'pasta'] }))
   }
 }));
