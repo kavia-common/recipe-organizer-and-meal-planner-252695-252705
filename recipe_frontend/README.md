@@ -22,6 +22,9 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
 Launches the test runner in interactive watch mode.
 
+In CI, run with:
+CI=true npm test -- --watchAll=false
+
 ### `npm run build`
 
 Builds the app for production to the `build` folder.\
