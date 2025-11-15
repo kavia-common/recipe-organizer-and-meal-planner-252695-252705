@@ -2,12 +2,22 @@
 
 This project provides a minimal React template with a clean, modern UI and minimal dependencies.
 
-## Features
+## Spoonacular Frontend-only Integration
 
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
+This app calls the Spoonacular API directly from the browser.
+
+Required environment variables (create `recipe_frontend/.env` from `.env.example`):
+- REACT_APP_SPOONACULAR_API_KEY=<your key>
+- REACT_APP_SPOONACULAR_BASE_URL=https://api.spoonacular.com (optional)
+
+Security note:
+- Client-side API keys are visible to users. Configure domain restrictions in your Spoonacular account, use rate limiting/monitoring, and consider a backend proxy for production environments handling sensitive logic.
+
+Primary endpoints used:
+- GET /recipes/complexSearch
+- GET /recipes/{id}/information
+- GET /recipes/{id}/nutritionWidget.json
+- GET /mealplanner/generate
 
 ## Getting Started
 
@@ -32,54 +42,15 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 ## Customization
 
-### Colors
-
-The main brand colors are defined as CSS variables in `src/App.css`:
-
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
-
-### Components
-
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
 Common components include:
 - Buttons (`.btn`, `.btn-large`)
 - Container (`.container`)
 - Navigation (`.navbar`)
 - Typography (`.title`, `.subtitle`, `.description`)
 
+To adjust colors, see CSS variables in `src/App.css`.
+
 ## Learn More
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- React documentation: https://reactjs.org/
+- Spoonacular Food API: https://spoonacular.com/food-api

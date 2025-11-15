@@ -241,23 +241,16 @@ describe('Grocery List: add, toggle, remove and persistence', () => {
   });
 });
 
-describe('Env handling: apiClient base URL reading (no crash without backend)', () => {
-  it('reads REACT_APP_API_BASE_URL and shows graceful error when search fails', async () => {
-    const originalEnv = process.env.REACT_APP_API_BASE_URL;
-    process.env.REACT_APP_API_BASE_URL = '/api'; // default, but explicit
-
+describe('Env handling: graceful error when search fails', () => {
+  it('shows graceful error when the client search fails', async () => {
     renderAtRoute('/');
 
     const input = screen.getByLabelText(/search recipes/i);
     fireEvent.change(input, { target: { value: 'network-fail' } });
     fireEvent.click(screen.getByRole('button', { name: /search/i }));
 
-    // error alert shown
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/failed to search/i);
     });
-
-    // restore env
-    process.env.REACT_APP_API_BASE_URL = originalEnv;
   });
 });

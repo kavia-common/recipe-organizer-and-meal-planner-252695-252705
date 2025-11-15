@@ -2,22 +2,22 @@
 
 Environment configuration
 
-- Frontend (React):
-  - Uses REACT_APP_API_BASE_URL to reach the backend API.
-  - Default is /api which works when the frontend proxies requests to the backend or when the backend is mounted under /api.
+- Frontend (React) — Frontend-only Spoonacular integration:
+  - The React app now calls Spoonacular directly from the browser.
+  - Configure the following env vars in recipe_frontend/.env:
+    - REACT_APP_SPOONACULAR_API_KEY=<your key>
+    - REACT_APP_SPOONACULAR_BASE_URL=https://api.spoonacular.com (optional; defaults to this)
   - Copy recipe_frontend/.env.example to recipe_frontend/.env and adjust as needed.
+  - Warning: Using a public API key in client-side code exposes it to end users. Apply domain restrictions and monitor usage.
 
 - Backend (FastAPI):
-  - Reads SPOONACULAR_API_KEY from environment. This must be set for recipe search/details/nutrition and meal plan endpoints to function.
-  - Copy recipe_backend/.env.example to recipe_backend/.env and set SPOONACULAR_API_KEY.
+  - Previously used as a proxy. The frontend no longer relies on it for search/details/nutrition/meal plan generation.
 
-Endpoints expected by the frontend API client:
-  GET  /recipes/search?q=...
-  GET  /recipes/{id}/details
-  GET  /recipes/{id}/nutrition
-  POST /mealplan/generate
-  POST /mealplan/nutrition
-  POST /mealplan/grocery-list
+Endpoints used by the frontend (Spoonacular):
+  GET  /recipes/complexSearch?query=...
+  GET  /recipes/{id}/information
+  GET  /recipes/{id}/nutritionWidget.json
+  GET  /mealplanner/generate?timeFrame=...
 
 Error handling
-- If the backend returns a configuration error (e.g., missing Spoonacular API key), the UI will display a clear message prompting to configure the server.
+- The UI surfaces clear messages for rate-limit (429) and quota (402) responses from Spoonacular, as well as timeout errors.
