@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiClient } from '../services/apiClient';
+import { apiClient, getAuthStatus } from '../services/apiClient';
 import { Link } from 'react-router-dom';
 import { useApp } from '../state/AppContext';
 
@@ -76,8 +76,12 @@ export default function SearchPage() {
       const list = Array.isArray(data?.results) ? data.results : [];
       setRecipes(list);
     } catch (err) {
+      const status = getAuthStatus();
       const msg = err?.message || 'Failed to search';
-      setErrorMsg(msg);
+      const retryHint = ' Please try again.';
+      const offlineHint = status.online === false ? ' You appear to be offline.' : '';
+      const devUrl = process.env.NODE_ENV !== 'production' && status.lastFailingUrl ? ` [Last URL: ${status.lastFailingUrl}]` : '';
+      setErrorMsg(`${msg}${offlineHint}${retryHint}${devUrl}`);
       setRecipes([]);
     } finally {
       setLoading(false);
