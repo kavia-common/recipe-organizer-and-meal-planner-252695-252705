@@ -80,8 +80,16 @@ export default function SearchPage() {
       const msg = err?.message || 'Failed to search';
       const retryHint = ' Please try again.';
       const offlineHint = status.online === false ? ' You appear to be offline.' : '';
-      const devUrl = process.env.NODE_ENV !== 'production' && status.lastFailingUrl ? ` [Last URL: ${status.lastFailingUrl}]` : '';
-      setErrorMsg(`${msg}${offlineHint}${retryHint}${devUrl}`);
+      const proxyHint = /CORS/i.test(msg) || /Failed to fetch/i.test(msg)
+        ? (status.corsProxy ? ' Check if the CORS proxy is reachable.' : ' CORS proxy is disabled. Enable or provide a proxy if your environment enforces CORS.')
+        : '';
+      const devUrl = process.env.NODE_ENV !== 'production'
+        ? [
+            status.lastProxiedUrl ? `Last proxied URL: ${status.lastProxiedUrl}` : null,
+            status.lastFailingUrl ? `Last error URL: ${status.lastFailingUrl}` : null
+          ].filter(Boolean).map(s => `[${s}]`).join(' ')
+        : '';
+      setErrorMsg(`${msg}${offlineHint}${proxyHint}${retryHint}${devUrl ? ' ' + devUrl : ''}`);
       setRecipes([]);
     } finally {
       setLoading(false);

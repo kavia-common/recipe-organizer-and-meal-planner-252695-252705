@@ -1,52 +1,95 @@
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
+const DEFAULT_CORS_PROXY = 'https://corsproxy.io/?';
 
 // Track last failing URL for diagnostics (dev only)
 let __lastFailingUrl = null;
+// Track last proxied URL for diagnostics (dev only)
+let __lastProxiedUrl = null;
 
 /**
  * PUBLIC_INTERFACE
- * Resolve TheMealDB base URL from env vars:
+ * Resolve TheMealDB base URL and CORS proxy from env vars:
  * - REACT_APP_MEALDB_BASE_URL (default https://www.themealdb.com/api/json/v1/1)
- * Trims trailing slashes to avoid double slashes.
+ * - REACT_APP_CORS_PROXY (default https://corsproxy.io/?; if explicitly set to empty string, disable proxy)
+ * Trims trailing slashes to avoid double slashes and ensures proxy ends with '?'.
  */
 function getMealDbConfig() {
-  const raw =
+  const rawBase =
     (process.env.REACT_APP_MEALDB_BASE_URL || DEFAULT_BASE_URL);
-  const base = (raw || DEFAULT_BASE_URL).toString().trim();
+  const base = (rawBase || DEFAULT_BASE_URL).toString().trim();
   const baseUrl = base.endsWith('/') ? base.slice(0, -1) : base;
-  return { baseUrl };
+
+  // Proxy handling: allow empty string to disable
+  const rawProxy = process.env.REACT_APP_CORS_PROXY;
+  let corsProxy;
+  if (rawProxy === '') {
+    corsProxy = ''; // explicit disable
+  } else if (typeof rawProxy === 'string' && rawProxy != null) {
+    corsProxy = rawProxy.trim();
+  } else {
+    corsProxy = DEFAULT_CORS_PROXY;
+  }
+
+  // Normalize proxy: allow '', but if non-empty, ensure it ends with '?' and not double '??'
+  if (corsProxy) {
+    // remove trailing ? if multiple then add one
+    corsProxy = corsProxy.replace(/\?+$/, '') + '?';
+  }
+
+  return { baseUrl, corsProxy };
 }
 
 /**
  * PUBLIC_INTERFACE
  * Returns non-secret diagnostics about API config for use in UI.
  * - hasKey: always false (no key needed)
- * - baseUrl: resolved base URL
+ * - baseUrl: resolved base URL (unproxied)
+ * - corsProxy: the configured proxy prefix ('' if disabled)
  * - online: navigator.onLine when available
- * - lastFailingUrl: only in development builds
+ * - lastFailingUrl: last attempted URL after proxying (dev only)
+ * - lastProxiedUrl: last effective proxied URL (dev only)
  */
 // PUBLIC_INTERFACE
 export function getAuthStatus() {
-  const { baseUrl } = getMealDbConfig();
+  const { baseUrl, corsProxy } = getMealDbConfig();
   const dev = process.env.NODE_ENV !== 'production';
   return {
     hasKey: false,
     baseUrl,
+    corsProxy,
     online: typeof navigator !== 'undefined' ? !!navigator.onLine : true,
-    lastFailingUrl: dev ? __lastFailingUrl : null
+    lastFailingUrl: dev ? __lastFailingUrl : null,
+    lastProxiedUrl: dev ? __lastProxiedUrl : null
   };
 }
 
 /**
  * Build a URL with query params for TheMealDB (no auth required).
+ * Applies CORS proxy if configured (non-empty string) and avoids double-prefix.
  */
 function buildUrl(path, params = {}) {
-  const { baseUrl } = getMealDbConfig();
-  const url = new URL(`${baseUrl}${path}`);
+  const { baseUrl, corsProxy } = getMealDbConfig();
+  const targetUrl = new URL(`${baseUrl}${path}`);
   const qp = new URLSearchParams(params);
-  qp.forEach((v, k) => url.searchParams.set(k, v));
-  return url.toString();
+  qp.forEach((v, k) => targetUrl.searchParams.set(k, v));
+  const finalTarget = targetUrl.toString();
+
+  // If proxy disabled (empty string), return direct URL
+  if (!corsProxy) {
+    __lastProxiedUrl = finalTarget;
+    return finalTarget;
+  }
+
+  // Avoid double prefixing: if already starts with proxy, return as-is
+  if (finalTarget.startsWith(corsProxy)) {
+    __lastProxiedUrl = finalTarget;
+    return finalTarget;
+  }
+
+  const proxied = `${corsProxy}${encodeURIComponent(finalTarget)}`;
+  __lastProxiedUrl = proxied;
+  return proxied;
 }
 
 /**
@@ -65,7 +108,8 @@ function toFriendlyNetworkMessage(err, url) {
     return 'You appear to be offline. Check your internet connection and retry.';
   }
   if (looksLikeFetchFail) {
-    return 'Network or CORS error contacting TheMealDB. Please retry.';
+    // Mention proxy health hint since requests go through it
+    return 'Network or CORS error contacting TheMealDB. If this persists, the configured CORS proxy may be unavailable. Please retry.';
   }
   return msg || 'Network error. Please retry.';
 }
@@ -103,7 +147,6 @@ async function requestJson(path, { method = 'GET', params = {}, headers = {}, bo
         headers: { 'Content-Type': 'application/json', ...headers },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
-        // mode left as default; TheMealDB allows CORS
       });
 
       const contentType = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
@@ -124,32 +167,27 @@ async function requestJson(path, { method = 'GET', params = {}, headers = {}, bo
       if (err.name === 'AbortError') {
         throw new Error('Request timed out. Please try again.');
       }
-      // Re-throw to let caller/outer retry logic decide
       throw err;
     } finally {
       clearTimeout(timeout);
     }
   };
 
-  // First attempt
   try {
     return await attempt();
   } catch (err) {
-    // Decide if retry is warranted (network-ish)
     const msg = (err && (err.message || err.toString())) || '';
     const maybeTransient = err.name === 'AbortError' || /Failed to fetch|NetworkError|timeout/i.test(msg);
     if (maybeTransient) {
       try {
         return await attempt();
       } catch (err2) {
-        // Convert to friendly network message when appropriate
         const friendly = toFriendlyNetworkMessage(err2, __lastFailingUrl);
         const finalErr = new Error(friendly);
         finalErr.cause = err2;
         throw finalErr;
       }
     }
-    // Non-transient: translate some generic errors to friendly text
     const friendly = toFriendlyNetworkMessage(err, __lastFailingUrl);
     throw new Error(friendly);
   }

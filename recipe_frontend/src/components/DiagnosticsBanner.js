@@ -33,8 +33,14 @@ export default function DiagnosticsBanner() {
 
   if (!dev) return null;
 
+  const proxyInfo = status.corsProxy ? (
+    <span>CORS Proxy: <code>{status.corsProxy}</code></span>
+  ) : (
+    <span>CORS Proxy: <em>disabled</em></span>
+  );
+
   const hint = !health.ok
-    ? 'If you see "Failed to fetch", check that you are online and retry the action.'
+    ? 'If requests fail, verify your internet connection and the CORS proxy availability.'
     : '';
 
   return (
@@ -55,11 +61,17 @@ export default function DiagnosticsBanner() {
     >
       <strong style={{ color: '#2563EB' }}>Diagnostics</strong>
       <span>Base URL: <code>{status.baseUrl}</code></span>
+      {proxyInfo}
       <span>Online: <strong>{String(status.online)}</strong></span>
       {health.checking ? (
         <span>Health: checking…</span>
       ) : (
         <span>Health: <strong style={{ color: health.ok ? '#16a34a' : '#EF4444' }}>{health.ok ? 'ok' : 'fail'}</strong></span>
+      )}
+      {!!status.lastProxiedUrl && (
+        <span title="Last effective proxied URL (dev only)">
+          Last proxied URL: <code>{status.lastProxiedUrl}</code>
+        </span>
       )}
       {!!status.lastFailingUrl && (
         <span title="Last failing request URL (dev only)">

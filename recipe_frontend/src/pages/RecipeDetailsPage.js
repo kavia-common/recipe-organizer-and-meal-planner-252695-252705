@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { apiClient } from '../services/apiClient';
+import { apiClient, getAuthStatus } from '../services/apiClient';
 import { useApp } from '../state/AppContext';
 
 // PUBLIC_INTERFACE
@@ -36,9 +36,20 @@ export default function RecipeDetailsPage() {
 
   if (loading) return <p>Loading…</p>;
   if (err) {
+    const status = getAuthStatus?.() || {};
+    const offlineHint = status.online === false ? ' You appear to be offline.' : '';
+    const proxyHint = /CORS/i.test(err) || /Failed to fetch/i.test(err)
+      ? (status.corsProxy ? ' Check if the CORS proxy is reachable.' : ' CORS proxy is disabled. Enable or provide a proxy if your environment enforces CORS.')
+      : '';
+    const devUrl = process.env.NODE_ENV !== 'production'
+      ? [
+          status.lastProxiedUrl ? `Last proxied URL: ${status.lastProxiedUrl}` : null,
+          status.lastFailingUrl ? `Last error URL: ${status.lastFailingUrl}` : null
+        ].filter(Boolean).map(s => `[${s}]`).join(' ')
+      : '';
     return (
       <div role="alert" style={{ color: '#EF4444' }}>
-        <p style={{ margin: 0 }}>{err}</p>
+        <p style={{ margin: 0 }}>{`${err}${offlineHint}${proxyHint}${devUrl ? ' ' + devUrl : ''}`}</p>
       </div>
     );
   }
