@@ -21,7 +21,14 @@ export default function RecipeDetailsPage() {
         if (active) setRecipe(data);
       })
       .catch((e) => {
-        if (active) setErr(e.message || 'Failed to load recipe');
+        if (active) {
+          const msg = e?.message || 'Failed to load recipe';
+          const lower = String(msg).toLowerCase();
+          const authHint = (lower.includes('not authorized') || lower.includes('unauthorized') || lower.includes('forbidden'))
+            ? ' Tip: Check your REACT_APP_SPOONACULAR_API_KEY or account usage/limits.'
+            : '';
+          setErr(`${msg}${authHint}`);
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -32,7 +39,17 @@ export default function RecipeDetailsPage() {
   }, [id]);
 
   if (loading) return <p>Loading…</p>;
-  if (err) return <p role="alert" style={{ color: '#EF4444' }}>{err}</p>;
+  if (err) {
+    return (
+      <div role="alert" style={{ color: '#EF4444' }}>
+        <p style={{ margin: 0 }}>{err}</p>
+        <p style={{ marginTop: 6 }}>
+          Learn more about Spoonacular authentication:&nbsp;
+          <a href="https://spoonacular.com/food-api/console#Authentication" target="_blank" rel="noreferrer">Auth docs</a>
+        </p>
+      </div>
+    );
+  }
   if (!recipe) return <p>No recipe found.</p>;
 
   const onFav = () => {

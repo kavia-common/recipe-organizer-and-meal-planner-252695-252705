@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import './App.css';
+import DiagnosticsBanner from './components/DiagnosticsBanner';
 
 /**
  * AppShell provides the common layout (top nav) and theme toggle.
@@ -75,6 +76,7 @@ function AppShell() {
           {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
         </button>
       </header>
+      <DiagnosticsBanner />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
         <Outlet />
       </main>

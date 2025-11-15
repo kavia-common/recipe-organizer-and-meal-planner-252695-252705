@@ -1,4 +1,5 @@
 const DEFAULT_TIMEOUT_MS = 15000;
+const MAX_AUTH_RETRY = 1;
 
 /**
  * PUBLIC_INTERFACE
@@ -12,6 +13,21 @@ function getSpoonacularConfig() {
   const baseUrl = base.endsWith('/') ? base.slice(0, -1) : base;
   const apiKey = (process.env.REACT_APP_SPOONACULAR_API_KEY || '').trim();
   return { baseUrl, apiKey };
+}
+
+/**
+ * PUBLIC_INTERFACE
+ * Returns non-secret diagnostics about auth config for use in UI.
+ * - hasKey: boolean (true if key string is non-empty)
+ * - baseUrl: resolved base URL
+ */
+// PUBLIC_INTERFACE
+export function getAuthStatus() {
+  const { baseUrl, apiKey } = getSpoonacularConfig();
+  return {
+    hasKey: Boolean(apiKey),
+    baseUrl
+  };
 }
 
 /**
@@ -31,11 +47,16 @@ function buildUrl(path, params = {}) {
 }
 
 /**
- * Normalize Spoonacular errors and provide friendly messages including 402/429 handling.
+ * Normalize Spoonacular errors and provide friendly messages including 401/403/402/429 handling.
+ * Adds guidance link for auth-related statuses.
  */
 function normalizeError(res, body, isJson) {
   let msg = res.statusText || 'Request failed';
-  if (res.status === 429) {
+  if (res.status === 401 || res.status === 403) {
+    msg =
+      'You are not authorized. Please verify your Spoonacular API key or account permissions. ' +
+      'See docs: https://spoonacular.com/food-api/console#Authentication';
+  } else if (res.status === 429) {
     msg = 'Rate limit exceeded. Please wait a moment and try again.';
   } else if (res.status === 402) {
     msg = 'API quota exceeded or plan limit reached.';
@@ -50,11 +71,13 @@ function normalizeError(res, body, isJson) {
 
 /**
  * Make a JSON request with timeout and consistent error handling against Spoonacular.
+ * Includes optional single retry on 401/403 to guard against transient issues.
  */
 async function requestJson(path, { method = 'GET', params = {}, headers = {}, body } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-  try {
+
+  const doFetch = async () => {
     const url = buildUrl(path, params);
     const res = await fetch(url, {
       method,
@@ -72,9 +95,24 @@ async function requestJson(path, { method = 'GET', params = {}, headers = {}, bo
 
     if (!res.ok) {
       const msg = normalizeError(res, data, isJson);
-      throw new Error(msg || 'Request failed');
+      const err = new Error(msg || 'Request failed');
+      err.status = res.status;
+      err.response = res;
+      throw err;
     }
     return data;
+  };
+
+  try {
+    try {
+      return await doFetch();
+    } catch (e) {
+      // Optional retry for 401/403 once
+      if ((e.status === 401 || e.status === 403) && MAX_AUTH_RETRY > 0) {
+        return await doFetch();
+      }
+      throw e;
+    }
   } catch (err) {
     if (err.name === 'AbortError') {
       throw new Error('Request timed out');
@@ -82,7 +120,10 @@ async function requestJson(path, { method = 'GET', params = {}, headers = {}, bo
     // If API key is missing, give a clearer client-side hint
     const { apiKey } = getSpoonacularConfig();
     if (!apiKey) {
-      throw new Error('Missing REACT_APP_SPOONACULAR_API_KEY. Set it in recipe_frontend/.env.');
+      throw new Error(
+        'Missing REACT_APP_SPOONACULAR_API_KEY. Set it in recipe_frontend/.env. ' +
+          'See https://spoonacular.com/food-api/console#Authentication'
+      );
     }
     throw err;
   } finally {
